@@ -28,22 +28,23 @@ static void error(int errorCode, char* progName = NULL)
 
 int main(int argc, char ** argv)
 {
+	/*usage*/
 	if (argc != 2){
 		error(INCORRECT_USAGE, argv[0]);
 		return 0;
 	}
 
+	/*read file*/
     const char* filename = argv[1];
-
     Mat I = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
     if(I.empty()){
     	error(ERROR_READING_IMG);
         return 0;
     }
 
+    /*pre-processing: transpose all images to 400x300*/
     if(I.size().height != 300)
     	I = I.t();
-
     imshow("Transposed image", I);
     waitKey();
 
