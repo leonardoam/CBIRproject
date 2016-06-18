@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 2.8)
+project( DisplayImage )
+find_package( OpenCV REQUIRED )
+add_executable( projeto projeto.cpp )
+target_link_libraries( projeto ${OpenCV_LIBS} )
