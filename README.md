@@ -1,12 +1,12 @@
 # CBIRproject
 
-Requirements:
-	G++ compiler (available at http://gcc.gnu.org)
-	OpenCV package (available at http://opencv.org)
+Requirements:<br/>
+	G++ compiler (available at http://gcc.gnu.org)<br/>
+	OpenCV package (available at http://opencv.org)<br/>
 
 Compiling:
-	cmake .
-	make
+	cmake .<br/>
+	make<br/>
 
 Usage:
 	
