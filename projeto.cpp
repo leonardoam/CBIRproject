@@ -21,7 +21,7 @@ static void error(int errorCode, char* progName = NULL)
 			cout << endl
 		        <<  "Program description. Options." << endl
 		        <<  "Usage:" << endl
-		        <<  progName << " [image_name -- default lena.jpg]" << endl;
+		        <<  progName << " [image_name]" << endl;
 			break;
 	}
 }
@@ -45,7 +45,11 @@ int main(int argc, char ** argv)
     /*pre-processing: transpose all images to 400x300*/
     if(I.size().height != 300)
     	I = I.t();
-    imshow("Transposed image", I);
+
+    /*find edges*/
+    Mat edges;
+    Canny(I, edges, 1, 100);
+    imshow("Edges", edges);
     waitKey();
 
     /*Mat padded;                            //expand input image to optimal size
