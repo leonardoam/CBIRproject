@@ -1,14 +1,18 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
+#include "lbp.hpp"
 
 #include <iostream>
+#include <string.h>
 
 #define ERROR_READING_IMG 1
 #define INCORRECT_USAGE 2
+#define INVALID_METHOD 3
 
 using namespace cv;
 using namespace std;
+using namespace libfacerec;
 
 static void error(int errorCode, char* progName = NULL)
 {
@@ -21,15 +25,21 @@ static void error(int errorCode, char* progName = NULL)
 			cout << endl
 		        <<  "Program description. Options." << endl
 		        <<  "Usage:" << endl
-		        <<  progName << " [image_name -- default lena.jpg]" << endl;
+		        <<  progName << " <image_name> <k-value> <descriptor>" << endl;
+			break;
+		case INVALID_METHOD:
+			cout << endl
+		        <<  "ERROR: Invalid method or value for k." << endl;
 			break;
 	}
 }
 
+Mat lbpHist(Mat I);
+
 int main(int argc, char ** argv)
 {
 	/*usage*/
-	if (argc != 2){
+	if (argc < 4){
 		error(INCORRECT_USAGE, argv[0]);
 		return 0;
 	}
@@ -47,6 +57,17 @@ int main(int argc, char ** argv)
     	I = I.t();
     imshow("Transposed image", I);
     waitKey();
+    
+    /*check what the chosen method is*/
+    const int k = atoi(argv[2]);
+    const char* method = argv[3];
+    if(strcmp(method, "lbp") && k > 0){
+        Mat hist = lbpHist(I);
+    }else if(strcmp(method, "fourier") && k > 0){
+        
+    }else{ 
+    	error(INVALID_METHOD);
+    }
 
     /*Mat padded;                            //expand input image to optimal size
     int m = getOptimalDFTSize( I.rows );
@@ -97,4 +118,34 @@ int main(int argc, char ** argv)
     waitKey();*/
 
     return 0;
+}
+
+Mat lbpHist(Mat I){
+    Mat lbpImage = elbp(I, 1, 8);    
+    imshow("LBP image", lbpImage);
+    waitKey();
+      
+    int histSize[] = {256};
+  
+    float range[] = { 0, 255 } ;
+    const float* histRange[] = { range };
+
+    Mat hist;
+    int c[] = {0}; 
+    lbpImage.convertTo(lbpImage, CV_8U);
+    calcHist(&lbpImage, 1, c, Mat(), hist, 1, histSize, histRange);
+    Mat histImage = Mat::ones(200, 320, CV_8U)*255;
+  
+    normalize(hist, hist, 0, histImage.rows, NORM_MINMAX, CV_32F);
+    histImage = Scalar::all(255);
+    int binW = cvRound((double)histImage.cols/histSize[0]);
+   
+    for( int i = 0; i < histSize[0]; i++ ){
+        rectangle( histImage, Point(i*binW, histImage.rows),
+        Point((i+1)*binW, histImage.rows - cvRound(hist.at<float>(i))),
+        Scalar::all(0), -1, 8, 0 );
+    }
+    
+    imshow("histogram", histImage);
+    waitKey();
 }

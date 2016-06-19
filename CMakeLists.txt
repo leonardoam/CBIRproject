@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project( DisplayImage )
 find_package( OpenCV REQUIRED )
-add_executable( projeto projeto.cpp )
+set(SOURCES lbp.cpp helper.cpp ./lbp.hpp ./helper.hpp)
+add_executable( projeto projeto.cpp ${SOURCES})
 target_link_libraries( projeto ${OpenCV_LIBS} )
