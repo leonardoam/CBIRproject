@@ -55,11 +55,7 @@ int main(int argc, char ** argv)
     /*pre-processing: transpose all images to 400x300*/
     if(I.size().height != 300)
     	I = I.t();
-
-    /*find edges*/
-    Mat edges;
-    Canny(I, edges, 1, 100);
-    imshow("Edges", edges);
+    imshow("Transposed image", I);
     waitKey();
     
     /*check what the chosen method is*/
