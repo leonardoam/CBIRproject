@@ -25,7 +25,7 @@ static void error(int errorCode, char* progName = NULL)
 			cout << endl
 		        <<  "Program description. Options." << endl
 		        <<  "Usage:" << endl
-		        <<  progName << " <image_name> <k-value> <descriptor>" << endl;
+		        <<  progName << " <image_name> <k-value> ( lbp <radius> <n> | fourier <n>)" << endl;
 			break;
 		case INVALID_METHOD:
 			cout << endl
@@ -34,7 +34,9 @@ static void error(int errorCode, char* progName = NULL)
 	}
 }
 
-Mat lbpHist(Mat I);
+Mat lbpHist(Mat I, int radius, int n);
+void findKNearest(int k, const char* filename, const char* method, int radius, int n);
+Mat prepareFile(const char* filename);
 
 int main(int argc, char ** argv)
 {
@@ -46,29 +48,24 @@ int main(int argc, char ** argv)
 
 	/*read file*/
     const char* filename = argv[1];
-    Mat I = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
-    if(I.empty()){
-    	error(ERROR_READING_IMG);
-        return 0;
-    }
+    Mat I = prepareFile(filename);
+    if(I.empty()) return 0;
 
-    /*pre-processing: transpose all images to 400x300*/
-    if(I.size().height != 300)
-    	I = I.t();
-
-    /*find edges*/
-    Mat edges;
-    Canny(I, edges, 1, 100);
-    imshow("Edges", edges);
-    waitKey();
-    
-    /*check what the chosen method is*/
     const int k = atoi(argv[2]);
     const char* method = argv[3];
-    if(strcmp(method, "lbp") && k > 0){
-        Mat hist = lbpHist(I);
-    }else if(strcmp(method, "fourier") && k > 0){
-        
+
+    /*check what the chosen method is*/
+    if(strcmp(method, "lbp")==0 && k > 0){
+        const int radius = atoi(argv[4]);
+        const int n = atoi(argv[5]);
+        Mat hist = lbpHist(I, radius, n);    
+        findKNearest(k, filename, method, radius, n);
+    }else if(strcmp(method, "fourier")==0 && k > 0){
+        /*find edges*/
+        Mat edges;
+        Canny(I, edges, 1, 100);
+        imshow("Edges", edges);
+        waitKey();    
     }else{ 
     	error(INVALID_METHOD);
     }
@@ -124,10 +121,59 @@ int main(int argc, char ** argv)
     return 0;
 }
 
-Mat lbpHist(Mat I){
-    Mat lbpImage = elbp(I, 1, 8);    
-    imshow("LBP image", lbpImage);
-    waitKey();
+Mat prepareFile(const char* filename){
+    Mat I = imread(filename, CV_LOAD_IMAGE_GRAYSCALE);
+    if(I.empty()){
+    	error(ERROR_READING_IMG);
+        return I;
+    }
+
+    /*pre-processing: transpose all images to 400x300*/
+    if(I.size().height != 300)
+    	I = I.t();
+
+    return I;
+}
+
+void findKNearest(int k, const char* filename, const char* method, int radius, int n){
+    /*getting query image number*/
+    string file(filename);
+    file = file.substr(0, file.length()-4);
+    string needle("/");
+    string::iterator found = search(file.rbegin(), file.rend(), needle.rbegin(), needle.rend()).base();
+    string number = file.substr(distance(file.begin(), found), file.length());
+    string filepath = file.substr(0, distance(file.begin(), found));
+    int filenumber = atoi(number.c_str());
+    cout << "File number: " << filenumber << endl;
+
+    Mat img = prepareFile(filename);
+    if(img.empty()) return;
+    
+    //calculates the histogram of the query image
+    Mat hist = lbpHist(img, radius, n);
+
+    char* cur_number = (char*) malloc(sizeof(char)*6);
+    char* path = (char*) malloc(sizeof(char)*100);
+    for(int i = 1; i < 10000; i++){
+        if(i != filenumber){
+            strcpy(path, filepath.c_str());
+            sprintf(cur_number, "%d", i);
+            char* cur_file = strcat(path, cur_number);
+            strcat(cur_file, ".jpg");
+            
+            Mat cur_img = prepareFile(cur_file);
+            if(cur_img.empty()) continue;
+            
+           //imshow("image", cur_img);
+           // waitKey();
+        }
+    }
+    free(cur_number);
+    free(path);
+}
+
+Mat lbpHist(Mat I, int radius, int n){
+    Mat lbpImage = elbp(I, radius, n);    
       
     int histSize[] = {256};
   
@@ -137,8 +183,11 @@ Mat lbpHist(Mat I){
     Mat hist;
     int c[] = {0}; 
     lbpImage.convertTo(lbpImage, CV_8U);
+    //imshow("LBP image", lbpImage);
+    //waitKey();
+
     calcHist(&lbpImage, 1, c, Mat(), hist, 1, histSize, histRange);
-    Mat histImage = Mat::ones(200, 320, CV_8U)*255;
+    /*Mat histImage = Mat::ones(200, 320, CV_8U)*255;
   
     normalize(hist, hist, 0, histImage.rows, NORM_MINMAX, CV_32F);
     histImage = Scalar::all(255);
@@ -151,5 +200,6 @@ Mat lbpHist(Mat I){
     }
     
     imshow("histogram", histImage);
-    waitKey();
+    waitKey();*/
+    return hist;
 }
