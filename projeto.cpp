@@ -4,7 +4,8 @@
 #include "lbp.hpp"
 
 #include <iostream>
-#include <string.h>
+#include <cstring>
+#include <climits>
 
 #define ERROR_READING_IMG 1
 #define INCORRECT_USAGE 2
@@ -37,6 +38,7 @@ static void error(int errorCode, char* progName = NULL)
 Mat lbpHist(Mat I, int radius, int n);
 void findKNearest(int k, const char* filename, const char* method, int radius, int n);
 Mat prepareFile(const char* filename);
+long long calc_distance(Mat hist1, Mat hist2);
 
 int main(int argc, char ** argv)
 {
@@ -135,6 +137,16 @@ Mat prepareFile(const char* filename){
     return I;
 }
 
+long long calc_distance(Mat hist1, Mat hist2){
+    long long distance = 0;
+    for(int i = 0; i < hist1.total(); i++){
+        long long diff = cvRound(hist1.at<float>(i))-cvRound(hist2.at<float>(i));
+        distance += diff*diff;
+    }
+
+    return distance;
+}
+
 void findKNearest(int k, const char* filename, const char* method, int radius, int n){
     /*getting query image number*/
     string file(filename);
@@ -152,9 +164,15 @@ void findKNearest(int k, const char* filename, const char* method, int radius, i
     //calculates the histogram of the query image
     Mat hist = lbpHist(img, radius, n);
 
+    long distances[k];
+    int indexes[k];
+    for(int i = 0; i < k; i++){
+        distances[i] = LONG_MAX;
+    }
+
     char* cur_number = (char*) malloc(sizeof(char)*6);
     char* path = (char*) malloc(sizeof(char)*100);
-    for(int i = 1; i < 10000; i++){
+    for(int i = 1; i <= 10000; i++){
         if(i != filenumber){
             strcpy(path, filepath.c_str());
             sprintf(cur_number, "%d", i);
@@ -163,6 +181,29 @@ void findKNearest(int k, const char* filename, const char* method, int radius, i
             
             Mat cur_img = prepareFile(cur_file);
             if(cur_img.empty()) continue;
+
+            Mat cur_hist = lbpHist(cur_img, radius, n);
+            long long cur_dist = calc_distance(hist, cur_hist);
+            cout << "distance from image "<< i << ": " << cur_dist << endl;
+
+            int found_lower = 1;
+            int cur_index = i;
+            while(found_lower){
+                found_lower = 0;
+                for(int j = 0; j < k; j++){
+                    if(cur_dist < distances[j]){
+                        cout << cur_dist << " < " << distances[j] << endl;
+                        long long aux = distances[j];
+                        distances[j] = cur_dist;
+                        int aux_i = indexes[j];
+                        indexes[j] = cur_index;
+                        cur_dist = aux;
+                        cur_index = aux_i;
+                        found_lower = 1;
+                        break;
+                    }
+                }
+            }
             
            //imshow("image", cur_img);
            // waitKey();
@@ -170,6 +211,11 @@ void findKNearest(int k, const char* filename, const char* method, int radius, i
     }
     free(cur_number);
     free(path);
+
+    cout << "Closest images to " << filename << endl;
+    for(int i = 0; i < k; i++){
+        cout << indexes[i] << endl;
+    }
 }
 
 Mat lbpHist(Mat I, int radius, int n){
